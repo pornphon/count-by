@@ -68,12 +68,12 @@ const showStateButton = ref(false)
 const runstate = reactive({})
 
 const DEFAULTS = {
-  step: 6,
+  step: 4,
   min: 1,
   max: 100,
-  sequenceLength: 6,
-  missingCount: 1,
-  numQuestions: 5
+  sequenceLength: 5,
+  missingCount: 2,
+  numQuestions: 3
 }
 
 const showState = ref(false)
