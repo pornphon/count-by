@@ -1,15 +1,15 @@
 <template>
   <div id="app">
-    <div class="correctness-header" v-if="correctnessLog.length">
+    <div class="correctness-header" v-if="runstate.correctnessLog.length">
       <i
-        v-for="(val, i) in correctnessLog"
+        v-for="(val, i) in runstate.correctnessLog"
         :key="`icon-for-item-${i}`"
         class="fas"
         :class="{
           'fa-question-circle': val === undefined,
           'fa-circle-check': val === true,
           'fa-minus-circle': val === false,
-          'active-question-icon': val === undefined && i === currentQuestionIndex
+          'active-question-icon': val === undefined && i === runstate.currentQuestionIndex
         }"
       />
     </div>
@@ -17,16 +17,16 @@
     <h1>Count By {{ step }}</h1>
 
     <div class="problem-line">
-      <template v-for="(item, index) in activeQuestion.items" :key="index">
+      <template v-for="(item, index) in runstate.activeQuestion.items" :key="index">
         <NumberInput
           v-model="item.userInput"
-          :locked="questionLocked || !item.missing"
+          :locked="runstate.questionLocked || !item.missing"
           width="120px"
-          :status="questionLocked && item.missing
+          :status="runstate.questionLocked && item.missing
                     ? (Number(item.userInput) === item.value ? 'correct-input' : 'incorrect-input')
                     : ''"
         />
-        <span v-if="index !== activeQuestion.items.length - 1" class="comma">,</span>
+        <span v-if="index !== runstate.activeQuestion.items.length - 1" class="comma">,</span>
       </template>
     </div>
 
@@ -46,17 +46,13 @@ sequenceLength: {{ sequenceLength }}
 missingCount: {{ missingCount }}
 numQuestions: {{ numQuestions }}
 
-currentQuestionIndex: {{ currentQuestionIndex }}
-activeQuestion.items: {{ JSON.stringify(activeQuestion.items, null, 2) }}
-correctnessLog: {{ JSON.stringify(correctnessLog, null, 2) }}
-questionLocked: {{ questionLocked }}
-isCompleted: {{ isCompleted }}
+{{ runstate }}
     </pre>
   </div>
 </template>
 
 <script setup>
-import { ref, onBeforeMount, computed } from 'vue'
+import { ref, onBeforeMount, computed, reactive } from 'vue'
 import NumberInput from './components/NumberInput.vue'
 import randomQuestion from './randomQuestion.js'
 
@@ -66,33 +62,30 @@ const max = ref()
 const sequenceLength = ref()
 const missingCount = ref()
 const numQuestions = ref()
-const currentQuestionIndex = ref(0)
-const activeQuestion = ref()
-const correctnessLog = ref([])
 const showStateButton = ref(false)
+
+const runstate = reactive({})
 
 const DEFAULTS = {
   step: 6,
   min: 1,
   max: 100,
   sequenceLength: 6,
-  missingCount: 3,
+  missingCount: 1,
   numQuestions: 5
 }
 
-const questionLocked = ref(false)
-const isCompleted = ref(false)
 const showState = ref(false)
 
 const buttonLabel = computed(() => {
-  if (!questionLocked.value) return 'Submit'
-  if (questionLocked.value && !isCompleted.value) return 'Next'
+  if (!runstate.questionLocked) return 'Submit'
+  if (runstate.questionLocked && !runstate.isCompleted) return 'Next'
   return 'Reset'
 })
 
 const buttonClass = computed(() => {
-  if (!questionLocked.value) return 'submit-btn'
-  if (questionLocked.value && !isCompleted.value) return 'next-btn'
+  if (!runstate.questionLocked) return 'submit-btn'
+  if (runstate.questionLocked && !runstate.isCompleted) return 'next-btn'
   return 'reset-btn'
 })
 
@@ -115,35 +108,35 @@ function generateQuestion() {
   )
 }
 
-function resetAll() {
-  correctnessLog.value = new Array(numQuestions.value).fill(undefined)
-  currentQuestionIndex.value = 0
-  activeQuestion.value = generateQuestion()
-  questionLocked.value = false
-  isCompleted.value = false
+function initialize() {
+  runstate.correctnessLog = new Array(numQuestions.value).fill(undefined)
+  runstate.currentQuestionIndex = 0
+  runstate.activeQuestion = generateQuestion()
+  runstate.questionLocked = false
+  runstate.isCompleted = false
 }
 
 function nextQuestion() {
-  currentQuestionIndex.value++
-  if (currentQuestionIndex.value < numQuestions.value) {
-    activeQuestion.value = generateQuestion()
-    questionLocked.value = false
+  runstate.currentQuestionIndex++
+  if (runstate.currentQuestionIndex < numQuestions.value) {
+    runstate.activeQuestion = generateQuestion()
+    runstate.questionLocked = false
   } else {
-    isCompleted.value = true
+    runstate.isCompleted = true
   }
 }
 
 function handleButtonClick() {
-  if (!questionLocked.value) {
-    questionLocked.value = true
-    const allCorrect = activeQuestion.value.items.every(item => !item.missing || Number(item.userInput) === item.value)
-    correctnessLog.value[currentQuestionIndex.value] = allCorrect
+  if (!runstate.questionLocked) {
+    runstate.questionLocked = true
+    const allCorrect = runstate.activeQuestion.items.every(item => !item.missing || Number(item.userInput) === item.value)
+    runstate.correctnessLog[runstate.currentQuestionIndex] = allCorrect
     if (allCorrect) playCorrectSound()
     else playIncorrectSound()
-  } else if (!isCompleted.value) {
+  } else if (!runstate.isCompleted) {
     nextQuestion()
   } else {
-    resetAll()
+    initialize()
   }
 }
 
@@ -168,7 +161,7 @@ onBeforeMount(() => {
   missingCount.value = parseParam(params, 'missingCount', DEFAULTS.missingCount)
   numQuestions.value = parseParam(params, 'numQuestions', DEFAULTS.numQuestions)
   showStateButton.value = parseParam(params, 'showState', 0) === 1
-  resetAll()
+  initialize()
 })
 </script>
 
