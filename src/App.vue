@@ -39,6 +39,13 @@
 
     <div v-if="showStateButton" class="state-toggle" @click="showState = !showState">State</div>
     <pre v-if="showState" class="state-display">
+step: {{ step }}
+min: {{ min }}
+max: {{ max }}
+sequenceLength: {{ sequenceLength }}
+missingCount: {{ missingCount }}
+numQuestions: {{ numQuestions }}
+
 currentQuestionIndex: {{ currentQuestionIndex }}
 activeQuestion.items: {{ JSON.stringify(activeQuestion.items, null, 2) }}
 correctnessLog: {{ JSON.stringify(correctnessLog, null, 2) }}
