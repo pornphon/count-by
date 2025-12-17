@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div id="app">
     <div class="correctness-header" v-if="correctnessLog.length">
       <i
         v-for="(val, i) in correctnessLog"
@@ -36,6 +36,15 @@
     >
       {{ buttonLabel }}
     </button>
+
+    <div v-if="showStateButton" class="state-toggle" @click="showState = !showState">State</div>
+    <pre v-if="showState" class="state-display">
+currentQuestionIndex: {{ currentQuestionIndex }}
+activeQuestion.items: {{ JSON.stringify(activeQuestion.items, null, 2) }}
+correctnessLog: {{ JSON.stringify(correctnessLog, null, 2) }}
+questionLocked: {{ questionLocked }}
+isCompleted: {{ isCompleted }}
+    </pre>
   </div>
 </template>
 
@@ -43,15 +52,6 @@
 import { ref, onBeforeMount, computed } from 'vue'
 import NumberInput from './components/NumberInput.vue'
 import randomQuestion from './randomQuestion.js'
-
-const DEFAULTS = {
-  step: 6,
-  min: 1,
-  max: 100,
-  sequenceLength: 6,
-  missingCount: 3,
-  numQuestions: 5
-}
 
 const step = ref()
 const min = ref()
@@ -62,9 +62,20 @@ const numQuestions = ref()
 const currentQuestionIndex = ref(0)
 const activeQuestion = ref()
 const correctnessLog = ref([])
+const showStateButton = ref(false)
+
+const DEFAULTS = {
+  step: 6,
+  min: 1,
+  max: 100,
+  sequenceLength: 6,
+  missingCount: 3,
+  numQuestions: 5
+}
 
 const questionLocked = ref(false)
 const isCompleted = ref(false)
+const showState = ref(false)
 
 const buttonLabel = computed(() => {
   if (!questionLocked.value) return 'Submit'
@@ -82,9 +93,7 @@ function parseParam(params, key, defaultValue, minAllowed) {
   const val = params.get(key)
   if (val !== null) {
     const n = Number(val)
-    if (Number.isFinite(n) && (minAllowed === undefined || n >= minAllowed)) {
-      return n
-    }
+    if (Number.isFinite(n) && (minAllowed === undefined || n >= minAllowed)) return n
   }
   return defaultValue
 }
@@ -97,18 +106,6 @@ function generateQuestion() {
     sequenceLength.value,
     missingCount.value
   )
-}
-
-function playCorrectSound() {
-  const audio = new Audio('/correct.mp3')
-  audio.volume = 0.5
-  audio.play().catch(err => console.warn('Correct sound blocked:', err))
-}
-
-function playIncorrectSound() {
-  const audio = new Audio('/incorrect.mp3')
-  audio.volume = 0.5
-  audio.play().catch(err => console.warn('Incorrect sound blocked:', err))
 }
 
 function resetAll() {
@@ -132,22 +129,27 @@ function nextQuestion() {
 function handleButtonClick() {
   if (!questionLocked.value) {
     questionLocked.value = true
-    const allCorrect = activeQuestion.value.items.every(item => {
-      return !item.missing || Number(item.userInput) === item.value
-    })
+    const allCorrect = activeQuestion.value.items.every(item => !item.missing || Number(item.userInput) === item.value)
     correctnessLog.value[currentQuestionIndex.value] = allCorrect
-
-    if (allCorrect) {
-      playCorrectSound()
-    } else {
-      playIncorrectSound()
-    }
-
+    if (allCorrect) playCorrectSound()
+    else playIncorrectSound()
   } else if (!isCompleted.value) {
     nextQuestion()
   } else {
     resetAll()
   }
+}
+
+function playCorrectSound() {
+  const audio = new Audio('/correct.mp3')
+  audio.volume = 0.5
+  audio.play().catch(() => {})
+}
+
+function playIncorrectSound() {
+  const audio = new Audio('/incorrect.mp3')
+  audio.volume = 0.5
+  audio.play().catch(() => {})
 }
 
 onBeforeMount(() => {
@@ -158,7 +160,7 @@ onBeforeMount(() => {
   sequenceLength.value = parseParam(params, 'sequenceLength', DEFAULTS.sequenceLength)
   missingCount.value = parseParam(params, 'missingCount', DEFAULTS.missingCount)
   numQuestions.value = parseParam(params, 'numQuestions', DEFAULTS.numQuestions)
-
+  showStateButton.value = parseParam(params, 'showState', 0) === 1
   resetAll()
 })
 </script>
@@ -212,15 +214,36 @@ button {
 .reset-btn { background-color: #2ecc71; color: white; }
 .reset-btn:hover { background-color: #27ae60; }
 
-@keyframes pulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.2); }
-  100% { transform: scale(1); }
+@keyframes pulse { 0%{transform:scale(1);}50%{transform:scale(1.2);}100%{transform:scale(1);} }
+.active-question-icon { font-size:1.8rem; color:#1abc9c; animation:pulse 1.2s infinite ease-in-out; }
+
+.state-toggle {
+  position: fixed;
+  bottom: 10px;
+  right: 10px;
+  background: #34495e;
+  color: white;
+  padding: 5px 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  user-select: none;
 }
 
-.active-question-icon {
-  font-size: 1.8rem;
-  color: #1abc9c; /* teal */
-  animation: pulse 1.2s infinite ease-in-out;
+.state-display {
+  position: fixed;
+  bottom: 50px;
+  right: 10px;
+  background: #2c3e50;
+  color: #ecf0f1;
+  padding: 10px;
+  border-radius: 5px;
+  font-family: monospace;
+  font-size: 0.8rem;
+  width: 500px;
+  max-height: 300px;
+  overflow: auto;
+  white-space: pre-wrap;
+  text-align: left;
 }
 </style>
