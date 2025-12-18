@@ -67,7 +67,7 @@ const props = defineProps({
   showStateButton: Boolean
 })
 
-const runstate = reactive({})
+const runstate = reactive(await Agent.state(location.search))
 
 const showState = ref(false)
 
@@ -138,7 +138,7 @@ function playIncorrectSound() {
 }
 
 onBeforeMount(() => {
-  initialize()
+  if (!runstate.activeQuestion) initialize()
 })
 </script>
 
