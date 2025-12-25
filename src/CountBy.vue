@@ -15,6 +15,18 @@
     </div>
 
     <h1>Count By {{ props.step }}</h1>
+    <h2> Score: {{runstate.score}}</h2>
+
+    <div class="text-save-section">
+    <label for="save-text">บันทึกข้อความ: </label>
+    <input 
+      id="save-text"
+      v-model="runstate.text" 
+      placeholder="พิมพ์ข้อความที่นี่..."
+      class="custom-input"
+    />
+    <p>ข้อความล่าสุด: {{ runstate.text }}</p>
+    </div>
 
     <div class="problem-line">
       <template v-for="(item, index) in runstate.activeQuestion.numberBoxes" :key="index">
@@ -67,7 +79,7 @@ const props = defineProps({
   showStateButton: Boolean
 })
 
-const runstate = reactive(await Agent.state(location.search))
+const runstate = reactive(await Agent.state('global_score_board'))
 
 const showState = ref(false)
 
@@ -99,6 +111,8 @@ function initialize() {
   runstate.activeQuestion = generateQuestion()
   runstate.questionLocked = false
   runstate.isCompleted = false
+  runstate.score=0
+  runstate.text="init Text"
 }
 
 function nextQuestion() {
@@ -116,6 +130,7 @@ function handleButtonClick() {
     runstate.questionLocked = true
     const allCorrect = runstate.activeQuestion.numberBoxes.every(item => !item.missing || Number(item.userInput) === item.value)
     runstate.correctnessLog[runstate.currentQuestionIndex] = allCorrect
+    runstate.score+=1
     if (allCorrect) playCorrectSound()
     else playIncorrectSound()
   } else if (!runstate.isCompleted) {
@@ -222,5 +237,25 @@ button {
   overflow: auto;
   white-space: pre-wrap;
   text-align: left;
+}
+
+.text-save-section {
+  margin: 20px 0;
+  padding: 15px;
+  background: #f9f9f9;
+  border-radius: 8px;
+}
+
+.custom-input {
+  padding: 8px 12px;
+  font-size: 1rem;
+  border: 2px solid #3498db;
+  border-radius: 4px;
+  outline: none;
+  width: 250px;
+}
+
+.custom-input:focus {
+  border-color: #2ecc71;
 }
 </style>
